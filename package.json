@@ -1,0 +1,12 @@
+{
+  "name": "celebrity-fact-checker",
+  "version": "1.0.0",
+  "description": "名人/健康信息真伪核查工具 MVP — 信息源核查、图片取证、交叉验证、专家解读",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.22.3"
+  }
+}

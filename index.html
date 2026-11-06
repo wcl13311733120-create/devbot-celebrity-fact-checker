@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>名人/健康信息真伪核查工具</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+  header { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 24px; }
+  header h1 { font-size: 28px; margin-bottom: 8px; }
+  header p { opacity: 0.9; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab { padding: 10px 20px; border: none; background: white; border-radius: 8px; cursor: pointer; font-size: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .tab.active { background: #e74c3c; color: white; }
+  .panel { display: none; background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .panel.active { display: block; }
+  .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; background: #e74c3c; color: white; }
+  .btn:hover { background: #c0392b; }
+  .btn-secondary { background: #e5e7eb; color: #333; }
+  input, textarea, select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; margin-bottom: 12px; }
+  label { display: block; margin-bottom: 4px; font-weight: 600; font-size: 13px; color: #555; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .result { background: #fef2f2; border-left: 4px solid #e74c3c; padding: 16px; border-radius: 6px; margin-top: 16px; }
+  .step-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .cred-high { color: #16a34a; font-weight: bold; }
+  .cred-medium { color: #d97706; font-weight: bold; }
+  .cred-low { color: #dc2626; font-weight: bold; }
+  .knowledge-card { border-left: 4px solid #c0392b; padding: 12px 16px; margin-bottom: 12px; background: #fef2f2; border-radius: 6px; }
+  .knowledge-card h4 { margin-bottom: 4px; color: #c0392b; }
+  .tag { display: inline-block; background: #e5e7eb; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-right: 4px; }
+  .check-list { list-style: none; }
+  .check-list li { padding: 12px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+  .empty { text-align: center; color: #999; padding: 40px; }
+  footer { text-align: center; margin-top: 24px; color: #999; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🔍 名人/健康信息真伪核查工具</h1>
+    <p>信息源核查 · 图片取证 · 交叉验证 · 专家解读 · 上下文分析</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-panel="assess">可信度评估</button>
+    <button class="tab" data-panel="knowledge">核查知识库</button>
+    <button class="tab" data-panel="checks">核查记录</button>
+  </div>
+
+  <div class="panel active" id="panel-assess">
+    <h2>信息可信度评估</h2>
+    <p style="margin-bottom:16px;color:#666;">针对社交媒体上的名人/健康信息，按核查步骤打分，获取可信度结论。</p>
+    <label>信息标题</label>
+    <input id="assess-title" placeholder="如：巨石强森因经济下行饿的只剩皮包骨头">
+    <label>信息链接</label>
+    <input id="assess-url" placeholder="https://x.com/...">
+    <div class="form-row">
+      <div><label><input type="checkbox" id="assess-official"> 有官方来源/声明</label></div>
+      <div><label><input type="checkbox" id="assess-multi"> 多家媒体报道</label></div>
+    </div>
+    <div class="form-row">
+      <div><label><input type="checkbox" id="assess-image"> 图片已取证（反向搜索/AI检测）</label></div>
+      <div><label><input type="checkbox" id="assess-expert"> 专家已解读</label></div>
+    </div>
+    <div class="form-row">
+      <div><label><input type="checkbox" id="assess-context"> 有完整上下文</label></div>
+    </div>
+    <button class="btn" onclick="doAssess()">评估可信度</button>
+    <div id="assess-result"></div>
+  </div>
+
+  <div class="panel" id="panel-knowledge">
+    <h2>核查知识库</h2>
+    <div style="margin-bottom:16px;">
+      <input id="kb-search" placeholder="搜索关键词..." oninput="searchKB()">
+    </div>
+    <div id="kb-tags"></div>
+    <div id="kb-list"></div>
+  </div>
+
+  <div class="panel" id="panel-checks">
+    <h2>核查记录</h2>
+    <div class="form-row">
+      <div><label>信息标题</label><input id="check-title" placeholder="信息标题"></div>
+      <div><label>信息链接</label><input id="check-url" placeholder="https://x.com/..."></div>
+    </div>
+    <label>补充说明</label>
+    <textarea id="check-notes" rows="3" placeholder="核查过程、发现..."></textarea>
+    <button class="btn" onclick="saveCheck()">保存记录</button>
+    <h3 style="margin-top:20px;">记录列表</h3>
+    <ul class="check-list" id="check-list"></ul>
+  </div>
+
+  <footer>名人/健康信息真伪核查工具 MVP · DevBot · 数据本地存储</footer>
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById('panel-' + t.dataset.panel).classList.add('active');
+      if (t.dataset.panel === 'knowledge') loadKB();
+      if (t.dataset.panel === 'checks') loadChecks();
+    });
+  });
+
+  async function doAssess() {
+    const body = {
+      hasOfficialSource: document.getElementById('assess-official').checked,
+      hasMultipleSources: document.getElementById('assess-multi').checked,
+      imageVerified: document.getElementById('assess-image').checked,
+      expertConfirmed: document.getElementById('assess-expert').checked,
+      hasContext: document.getElementById('assess-context').checked
+    };
+    const res = await fetch('/api/assess', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await res.json();
+    const cls = data.level === '高可信' ? 'cred-high' : data.level === '待验证' ? 'cred-medium' : 'cred-low';
+    document.getElementById('assess-result').innerHTML = `
+      <div class="result">
+        <strong>可信度评分：</strong><span class="${cls}">${data.score} / 100（${data.level}）</span>
+        <br><br><strong>结论：</strong>${data.verdict}
+        <br><br><strong>核查步骤：</strong>
+        ${data.steps.map(s => `<div class="step-card"><span><strong>${s.name}</strong> — ${s.desc}</span><span style="color:#999;">权重 ${s.weight}%</span></div>`).join('')}
+      </div>`;
+  }
+
+  async function loadKB(tag) {
+    let url = '/api/knowledge';
+    if (tag) url += '?tag=' + encodeURIComponent(tag);
+    const res = await fetch(url);
+    const list = await res.json();
+    document.getElementById('kb-list').innerHTML = list.map(k => `
+      <div class="knowledge-card">
+        <h4>${k.title}</h4>
+        <p>${k.content}</p>
+        <div style="margin-top:6px;">${k.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+      </div>`).join('') || '<div class="empty">无匹配结果</div>';
+    const tagsRes = await fetch('/api/knowledge/tags');
+    const tags = await tagsRes.json();
+    document.getElementById('kb-tags').innerHTML = '<div style="margin-bottom:12px;">' + tags.map(t => `<button class="btn btn-secondary" style="margin:2px;padding:4px 10px;font-size:12px;" onclick="loadKB('${t}')">${t}</button>`).join('') + `<button class="btn btn-secondary" style="margin:2px;padding:4px 10px;font-size:12px;" onclick="loadKB()">全部</button></div>`;
+  }
+  async function searchKB() {
+    const q = document.getElementById('kb-search').value;
+    const res = await fetch('/api/knowledge?q=' + encodeURIComponent(q));
+    const list = await res.json();
+    document.getElementById('kb-list').innerHTML = list.map(k => `
+      <div class="knowledge-card">
+        <h4>${k.title}</h4>
+        <p>${k.content}</p>
+        <div style="margin-top:6px;">${k.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+      </div>`).join('') || '<div class="empty">无匹配结果</div>';
+  }
+  loadKB();
+
+  async function saveCheck() {
+    const body = {
+      title: document.getElementById('check-title').value,
+      url: document.getElementById('check-url').value,
+      notes: document.getElementById('check-notes').value
+    };
+    await fetch('/api/checks', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    document.getElementById('check-title').value = '';
+    document.getElementById('check-url').value = '';
+    document.getElementById('check-notes').value = '';
+    loadChecks();
+  }
+  async function loadChecks() {
+    const res = await fetch('/api/checks');
+    const list = await res.json();
+    const ul = document.getElementById('check-list');
+    if (!list.length) { ul.innerHTML = '<div class="empty">暂无核查记录</div>'; return; }
+    ul.innerHTML = list.map(c => `<li><span>${c.title || '未命名'} <small style="color:#999;">${new Date(c.ts).toLocaleDateString()}</small></span><span class="${c.level === '高可信' ? 'cred-high' : c.level === '待验证' ? 'cred-medium' : 'cred-low'}">${c.level} ${c.score}分</span></li>`).join('');
+  }
+  loadChecks();
+</script>
+</body>
+</html>
